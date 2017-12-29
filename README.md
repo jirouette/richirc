@@ -14,6 +14,12 @@ The _current_ stack is
 - :construction: Maybe MySQL (logs) ?
 - :construction: JS framework to be determined
 - :construction: CSS framework to be determined
+- :construction: [Showdown](https://github.com/showdownjs/showdown)
+
+## Screenshots
+
+![RichIRC screenshot](screenshots/richirc_screenshot.png)
+![HexChat screenshot](screenshots/hexchat_screenshot.png)
 
 ## Contributors
 
