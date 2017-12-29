@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>RichIRC</title>
+  <meta charset="utf-8">
+  <meta name="description" content="IRC web client with logs and rich text">
+  <meta name="author" content="glrd, jr">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.6.1/css/bulma.min.css">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+  <!--[if lt IE 9]>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.js"></script>
+  <![endif]-->
+</head>
+<body>
+    <header class="hero is-info">
+        <div class="hero-head">
+            <nav class="navbar">
+                <div class="container">
+                    <div class="navbar-brand">
+                            <div class="column">
+                                <h1 class="title">RichIRC</h1>
+                            </div>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </header>
+    <section class="section">
+        <main class="container">
+            <article id="chat" class="content"></article>
+            <fieldset class="content has-text-centered">
+                <form id="userform">
+                    <div class="field has-addons">
+                      <input class="input is-fullwidth" type="text" id="usertext" placeholder="Blah, blah, blah..." />
+                      <div class="control">
+                          <input type="submit" class="button is-primary" value="Send" />
+                      </div>
+                    </div>
+                </form>
+            </fieldset>
+        </main>
+    </section>
+    <footer class="footer">
+        <div class="container">
+            <p class="content has-text-centered">
+                <a href="https://github.com/jirouette/richirc"><i class="fa fa-github" aria-hidden="true"></i> RichIRC on GitHub</a>
+            </p>
+        </div>
+    </footer>
+</body>
+</html>
