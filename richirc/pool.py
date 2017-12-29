@@ -46,26 +46,29 @@ class WebBridge(Thread):
                     self.invoke(ID, method, *args, **kwargs)
 
     def newclient(self, ID, *args, **kwargs):
-        client = RichIRCClient("richirc_user1", realname=ID)
+        client = RichIRCClient(*args, **kwargs)
         client.ID = ID
-        self.pool.connect(client, *args, **kwargs)
         self.pool.client_list[ID] = client
-        print("connecting")
+        print("new client")
 
     def invoke(self, ID, method, *args, **kwargs):
+        print("["+ID+"]",method, args, kwargs)
         client = self.pool.client_list.get(ID)
         if client and hasattr(client, method):
+            if method == 'connect':
+                return self.pool.connect(client, *args, **kwargs)
             return getattr(client, method)(*args, **kwargs)
 
 class RichIRCClient(pydle.Client):
     def on_connect(self):
         print("on_connect")
-        for chan in os.environ.get('CHANNELS', '#richirc').split():
-            self.join(chan)
         self.bridge('on_connect')
 
     def on_message(self, source, target, message):
         self.bridge('on_message', source, target, message)
+
+    def on_join(self, channel, user):
+        self.bridge('on_join', channel, user)
 
     def bridge(self, method, *args, **kwargs):
         r = Redis(host=os.environ.get('REDIS_HOST', 'localhost'),

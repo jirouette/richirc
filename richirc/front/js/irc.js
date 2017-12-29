@@ -2,7 +2,7 @@
 
 class RichIRC
 {
-	constructor(server, port, nickname)
+	constructor(server, port, nickname, chan)
 	{
 		this.server = server;
 		this.port = port;
@@ -21,19 +21,35 @@ class RichIRC
 		document.getElementById('chat').innerHTML += message + "<br />";
 	}
 
+	send(obj)
+	{
+		this.ws.send(JSON.stringify(obj));
+	}
+
 	onOpen(server, port, nickname)
 	{
 		this.write("Connecting to <strong>"+server+":"+port+"</strong> as <em>"+nickname+"... ");
-		let payload = {
+
+		// initializing client
+		let newclient_payload = {
 			'method': 'newclient',
+			'args': [nickname],
+			'kwargs': {
+				'realname': nickname
+			}
+		};
+		this.send(newclient_payload);
+
+		// connecting client
+		let connect_payload = {
+			'method': 'connect',
 			'args': [server, port],
 			'kwargs': {
 				'tls': true,
 				'tls_verify': false,
-				//'nickname': nickname
 			}
 		};
-		this.ws.send(JSON.stringify(payload));
+		this.send(connect_payload);
 	}
 
 	onData(event)
