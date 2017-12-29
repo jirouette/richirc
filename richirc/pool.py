@@ -2,89 +2,49 @@
 #coding: utf8
 
 import pydle
-import json
-import os
-import time
-from threading import Thread
-from redis import StrictRedis as Redis
+from mq import RedisMQ
 
-class WebBridge(Thread):
+class WebBridge(RedisMQ):
     BRIDGE_NAME = 'pool'
 
-    def __init__(self, pool):
-        Thread.__init__(self)
-        self.pool = pool
-        if not hasattr(self.pool, 'client_list'):
-            self.pool.client_list = dict()
-
-    def run(self):
-        r = Redis(host=os.environ.get('REDIS_HOST', 'localhost'),
-                  port=int(os.environ.get('REDIS_PORT', 6379)),
-                  db=0)
-        pubsub_chan = os.environ.get('RICHIRC_REDIS_BRIDGE_CHANNEL', 'richirc')
-        pubsub = r.pubsub()
-        pubsub.subscribe(pubsub_chan)
-        while True:
-            message = pubsub.get_message()
-            if message:
-                self.parse_message(message)
-            time.sleep(0.01)
-
-    def parse_message(self, message):
-        data = message.get('data')
-        if type(data) is bytes:
-            data = json.loads(data.decode('utf-8'))
-            print(data)
-            if data.get('source') != self.BRIDGE_NAME:
-                args = data.get('args', list())
-                kwargs = data.get('kwargs', dict())
-                method = data.get('method')
-                ID = str(data.get('ID'))
-                if method == 'newclient':
-                    self.newclient(ID, *args, **kwargs)
-                elif not method.startswith('on_') and method != 'bridge':
-                    self.invoke(ID, method, *args, **kwargs)
+    def __init__(self):
+        super().__init__(self.BRIDGE_NAME, self.invoke)
 
     def newclient(self, ID, *args, **kwargs):
-        client = RichIRCClient(*args, **kwargs)
-        client.ID = ID
-        self.pool.client_list[ID] = client
-        print("new client")
+        client = RichIRCClient(ID, self, *args, **kwargs)
+        pool.client_list[ID] = client
 
     def invoke(self, ID, method, *args, **kwargs):
-        print("["+ID+"]",method, args, kwargs)
-        client = self.pool.client_list.get(ID)
+        if method == 'newclient':
+            return self.newclient(ID, *args, **kwargs)
+
+        client = pool.client_list.get(ID)
         if client and hasattr(client, method):
             if method == 'connect':
-                return self.pool.connect(client, *args, **kwargs)
+                return pool.connect(client, *args, **kwargs)
             return getattr(client, method)(*args, **kwargs)
 
 class RichIRCClient(pydle.Client):
+    def __init__(self, ID, bridge, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.ID = ID
+        self.bridge = bridge
+
+    def send(self, *args, **kwargs):
+        self.bridge.send(self.ID, *args, **kwargs)
+
     def on_connect(self):
-        print("on_connect")
-        self.bridge('on_connect')
+        self.send('on_connect')
 
     def on_message(self, source, target, message):
-        self.bridge('on_message', source, target, message)
+        self.send('on_message', source, target, message)
 
     def on_join(self, channel, user):
-        self.bridge('on_join', channel, user)
-
-    def bridge(self, method, *args, **kwargs):
-        r = Redis(host=os.environ.get('REDIS_HOST', 'localhost'),
-                  port=int(os.environ.get('REDIS_PORT', 6379)),
-                  db=0)
-        pubsub_chan = os.environ.get('RICHIRC_REDIS_BRIDGE_CHANNEL', 'richirc')
-        payload = dict(source=WebBridge.BRIDGE_NAME,
-                       method=method,
-                       args=args,
-                       kwargs=kwargs,
-                       ID=self.ID)
-        print("on_message", payload)
-        return r.publish(pubsub_chan, json.dumps(payload))
+        self.send('on_join', channel, user)
 
 if __name__ == '__main__':
     pool = pydle.ClientPool()
-    WebBridge(pool).start()
-    print("RichIRC pool started")
+    pool.client_list = dict()
+    WebBridge().start()
+    print("[!] RichIRC pool started")
     pool.handle_forever()
