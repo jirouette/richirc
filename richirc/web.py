@@ -41,7 +41,15 @@ class WebBridge(PoolWebBridge):
 
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
-        self.render("front/templates/index.html")
+        data = dict(host=os.environ.get('RICHIRC_DEFAULT_SERVER',
+                                        'chat.freenode.net'),
+                    port=int(os.environ.get('RICHIRC_DEFAULT_PORT', 6697)),
+                    nickname=os.environ.get('RICHIRC_DEFAULT_NICKNAME',
+                                            'richirc_user1'),
+                    channel=os.environ.get('RICHIRC_DEFAULT_CHANNEL',
+                                           '#richirc')
+                    )
+        self.render("front/templates/index.html", **data)
 
 class IRCWebSocket(tornado.websocket.WebSocketHandler):
     def open(self):
