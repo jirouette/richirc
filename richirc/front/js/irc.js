@@ -56,18 +56,23 @@ class RichIRC
 	{
 		let payload = JSON.parse(event.data);
 		console.log(payload);
+		let method = null;
 		switch(payload.method)
 		{
 			case "on_message":
-				this.onMessage(payload.source, payload.target, payload.message);
+				method = this.onMessage;
 				break;
 			case "on_connect":
-				this.onConnect();
+				method = this.onConnect;
 				break;
 			case "on_join":
-				this.onJoin(payload.channel, payload.user);
+				method = this.onJoin;
 				break;
 		}
+
+		if (method)
+			method.apply(this, payload.args);
+
 	}
 
 	onConnect()

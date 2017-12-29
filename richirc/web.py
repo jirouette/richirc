@@ -9,8 +9,6 @@ from mq import RedisMQ
 import os
 import json
 
-METHOD_PREFIX = 'irc_'
-
 HOST = os.environ.get('RICHIRC_DEFAULT_SERVER', 'chat.freenode.net')
 PORT = int(os.environ.get('RICHIRC_DEFAULT_PORT', 6697))
 NICKNAME = os.environ.get('RICHIRC_DEFAULT_NICKNAME', 'richirc_user1')
@@ -23,10 +21,9 @@ class WebBridge(RedisMQ):
         super().__init__(self.BRIDGE_NAME, self.invoke)
 
     def invoke(self, ID, method, *args, **kwargs):
-        method = METHOD_PREFIX+method
         client = app.user_list.get(ID)
-        if client and hasattr(client, method):
-            return getattr(client, method)(*args, **kwargs)
+        if client and not method.startswith('_'):
+            return getattr(client.irc, method)(*args, **kwargs)
 
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
@@ -36,47 +33,45 @@ class MainHandler(tornado.web.RequestHandler):
                     channel=CHANNEL)
         self.render("front/templates/index.html", **data)
 
-class IRCWebSocket(tornado.websocket.WebSocketHandler):
-    ## WS methods
+class IRCProxyClient(object):
+    def __init__(self, ID, callback):
+        self.ID = ID
+        self.bridge = WebBridge()
+        self.callback = callback
 
+    def __getattr__(self, method):
+        def execute(*args, **kwargs):
+            if method.startswith('on_'):
+                self.callback(self.ID, method, *args, **kwargs)
+            else:
+                self.bridge.send(self.ID, method, *args, **kwargs)
+        return execute
+
+class IRCWebSocket(tornado.websocket.WebSocketHandler):
     def open(self):
         self.ID = str(uuid.uuid4())
         self.application.user_list[self.ID] = self
-        self.bridge = WebBridge()
+        self.irc = IRCProxyClient(self.ID, self.ws_send)
         print("[WS] Welcome", self.ID)
+
+    def on_close(self):
+        del self.application.user_list[self.ID]
+        print("[WS] Bye", self.ID)
+
+    def ws_send(self, ID, method, *args, **kwargs):
+        payload = dict(method=method,
+                       args=args,
+                       kwargs=kwargs,
+                       ID=ID,
+                       source=WebBridge.BRIDGE_NAME)
+        self.write_message(json.dumps(payload))
 
     def on_message(self, message):
         payload = json.loads(message)
         method = payload.get('method')
         args = payload.get('args', list())
         kwargs = payload.get('kwargs', dict())
-        self.send(method, *args, **kwargs)
-
-    ## IRC methods
-
-    def send(self, method, *args, **kwargs):
-        self.bridge.send(self.ID, method, *args, **kwargs)
-
-    def irc_on_message(self, source, target, message):
-        payload = dict(method='on_message',
-                       source=source,
-                       target=target,
-                       message=message)
-        self.write_message(json.dumps(payload))
-
-    def irc_on_connect(self):
-        payload = dict(method='on_connect')
-        self.write_message(json.dumps(payload))
-
-    def irc_on_join(self, channel, user):
-        payload = dict(method='on_join',
-                       channel=channel,
-                       user=user)
-        self.write_message(json.dumps(payload))
-
-    def on_close(self):
-        del self.application.user_list[self.ID]
-        print("[WS] Bye", self.ID)
+        return getattr(self.irc, method)(*args, **kwargs)
 
 def make_app():
     return tornado.web.Application([
