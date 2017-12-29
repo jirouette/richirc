@@ -86,4 +86,5 @@ class RichIRCClient(pydle.Client):
 if __name__ == '__main__':
     pool = pydle.ClientPool()
     WebBridge(pool).start()
+    print("RichIRC pool started")
     pool.handle_forever()

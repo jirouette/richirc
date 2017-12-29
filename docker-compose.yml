@@ -1,0 +1,27 @@
+version: '2'
+services:
+    pool:
+      container_name: "richirc_pool"
+      build:
+          context: .
+          dockerfile: ./pool.Dockerfile
+      restart: always
+      links:
+        - redis
+      environment:
+          REDIS_HOST: "redis"
+    web:
+        container_name: "richirc_web"
+        build: .
+        restart: always
+        links:
+          - redis
+        environment:
+            REDIS_HOST: "redis"
+            RICHIRC_DEFAULT_CHANNEL: "#richirc"
+        ports:
+          - "127.0.0.1:1993:1993"
+    redis:
+        container_name: "richirc_redis"
+        restart: always
+        image: "redis:latest"

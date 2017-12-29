@@ -4,8 +4,6 @@ ADD requirements.txt .
 
 RUN pip install -r ./requirements.txt
 
-ADD richirc .
+ADD richirc/pool.py .
 
-EXPOSE 1993
-
-CMD ["python", "-u", "./web.py"]
+CMD ["python", "-u", "./pool.py"]

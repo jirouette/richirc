@@ -108,4 +108,5 @@ if __name__ == "__main__":
     app.user_list = dict()
     app.listen(1993)
     WebBridge(app).start()
+    print("RichIRC web platform started")
     tornado.ioloop.IOLoop.current().start()
