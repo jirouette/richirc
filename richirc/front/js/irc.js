@@ -1,5 +1,10 @@
 "use strict";
 
+function markdown(text)
+{
+	return (new showdown.Converter()).makeHtml(text).replace(/^<p>|<\/p>$/g, '');
+}
+
 class RichIRC
 {
 	constructor(server, port, nickname, chan)
@@ -56,23 +61,15 @@ class RichIRC
 	{
 		let payload = JSON.parse(event.data);
 		console.log(payload);
-		let method = null;
-		switch(payload.method)
-		{
-			case "on_message":
-				method = this.onMessage;
-				break;
-			case "on_connect":
-				method = this.onConnect;
-				break;
-			case "on_join":
-				method = this.onJoin;
-				break;
-		}
 
-		if (method)
-			method.apply(this, payload.args);
-
+		let method_pool = {
+			'on_message': this.onMessage,
+			'on_connect': this.onConnect,
+			'on_join': this.onJoin,
+			'on_private_notice': this.onPrivateNotice
+		};
+		if (method_pool[payload.method] !== undefined)
+			method_pool[payload.method].apply(this, payload.args);
 	}
 
 	onConnect()
@@ -88,7 +85,7 @@ class RichIRC
 	onMessage(source, target, message)
 	{
 		let converter = new showdown.Converter();
-		let html = converter.makeHtml(message).replace(/^<p>|<\/p>$/g, '');
+		let html = markdown(message)
 		if (this.target == this.nickname)
 			html = "<span class='is-primary'>"+html+"</span>";
 		this.write("<strong>&lt;"+target+"&gt;</strong> "+html);
@@ -100,6 +97,11 @@ class RichIRC
 			this.write("Joined <strong>"+chan+"</strong>");
 		else
 			this.write("<strong>"+nick+"</strong> has joined <strong>"+chan+"</strong>");
+	}
+
+	onPrivateNotice(nick, message)
+	{
+		this.write("<em>"+nick+"</em> − "+markdown(message));
 	}
 
 	onSubmit(e)
