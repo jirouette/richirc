@@ -3,6 +3,7 @@
 
 import pydle
 from mq import RedisMQ
+from functools import partial
 
 class WebBridge(RedisMQ):
     BRIDGE_NAME = 'pool'
@@ -30,17 +31,16 @@ class RichIRCClient(pydle.Client):
         self.ID = ID
         self.bridge = bridge
 
+        for attr in dir(self):
+            if attr.startswith('on_'):
+                setattr(self, attr, partial(self._on_event, attr))
+
+    def _on_event(self, attr, *args, **kwargs):
+        getattr(super(), attr)(*args, **kwargs)
+        return self.send(attr, *args, **kwargs)
+
     def send(self, *args, **kwargs):
         self.bridge.send(self.ID, *args, **kwargs)
-
-    def on_connect(self):
-        self.send('on_connect')
-
-    def on_message(self, source, target, message):
-        self.send('on_message', source, target, message)
-
-    def on_join(self, channel, user):
-        self.send('on_join', channel, user)
 
 if __name__ == '__main__':
     pool = pydle.ClientPool()

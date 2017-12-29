@@ -49,4 +49,7 @@ class RedisMQ(Thread):
                        args=args,
                        kwargs=kwargs,
                        ID=ID)
-        return _redis().publish(_redis_chan(), json.dumps(payload))
+        try:
+            return _redis().publish(_redis_chan(), json.dumps(payload))
+        except TypeError:
+            pass
