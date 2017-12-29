@@ -4,7 +4,12 @@ class RichIRC
 {
 	constructor(server, port, nickname)
 	{
-		this.write("<em>Welcome to <strong>RichText</strong> ! </em>");
+		this.server = server;
+		this.port = port;
+		this.nickname = nickname;
+		this.chan = chan;
+
+		this.write("<em>Welcome to <strong>RichIRC</strong> ! </em>");
 		this.ws = new WebSocket(((window.location.protocol === "https:") ? "wss://" : "ws://") + window.location.host + "/irc");
 		this.ws.onopen = () => this.onOpen(server, port, nickname);
 		this.ws.onmessage = (e) => this.onData(e);
