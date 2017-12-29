@@ -46,7 +46,7 @@ class WebBridge(Thread):
                     self.invoke(ID, method, *args, **kwargs)
 
     def newclient(self, ID, *args, **kwargs):
-        client = RichIRCClient("rich_"+ID, realname=ID)
+        client = RichIRCClient("richirc_user1", realname=ID)
         client.ID = ID
         self.pool.connect(client, *args, **kwargs)
         self.pool.client_list[ID] = client
@@ -62,6 +62,7 @@ class RichIRCClient(pydle.Client):
         print("on_connect")
         for chan in os.environ.get('CHANNELS', '#richirc').split():
             self.join(chan)
+        self.bridge('on_connect')
 
     def on_message(self, source, target, message):
         self.bridge('on_message', source, target, message)
