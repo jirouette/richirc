@@ -67,6 +67,12 @@ class IRCWebSocket(tornado.websocket.WebSocketHandler):
         payload = dict(method='on_connect')
         self.write_message(json.dumps(payload))
 
+    def irc_on_join(self, channel, user):
+        payload = dict(method='on_join',
+                       channel=channel,
+                       user=user)
+        self.write_message(json.dumps(payload))
+
     def bridge(self, method, *args, **kwargs):
         r = Redis(host=os.environ.get('REDIS_HOST', 'localhost'),
                   port=int(os.environ.get('REDIS_PORT', 6379)),

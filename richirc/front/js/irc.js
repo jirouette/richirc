@@ -55,6 +55,7 @@ class RichIRC
 	onData(event)
 	{
 		let payload = JSON.parse(event.data);
+		console.log(payload);
 		switch(payload.method)
 		{
 			case "on_message":
@@ -62,27 +63,46 @@ class RichIRC
 				break;
 			case "on_connect":
 				this.onConnect();
+				break;
+			case "on_join":
+				this.onJoin(payload.channel, payload.user);
+				break;
 		}
 	}
 
 	onConnect()
 	{
-		this.write("Now connected ! ");
+		this.write("Now connected ! Now joining <strong>"+this.chan+"</strong>... ");
+		let join_payload = {
+			'method': 'join',
+			'args': [this.chan]
+		};
+		this.send(join_payload);
 	}
 
 	onMessage(source, target, message)
 	{
 		let converter = new showdown.Converter();
 		let html = converter.makeHtml(message).replace(/^<p>|<\/p>$/g, '');
+		if (this.target == this.nickname)
+			html = "<span class='is-primary'>"+html+"</span>";
 		this.write("<strong>&lt;"+target+"&gt;</strong> "+html);
+	}
+
+	onJoin(chan, nick)
+	{
+		if (nick == this.nickname)
+			this.write("Joined <strong>"+chan+"</strong>");
+		else
+			this.write("<strong>"+nick+"</strong> has joined <strong>"+chan+"</strong>");
 	}
 
 	onSubmit(e)
 	{
 		let el = document.getElementById('usertext');
-		let payload = {'method': 'message', 'args': ['#richirc', el.value]}
+		let payload = {'method': 'message', 'args': [this.chan, el.value]}
 		this.ws.send(JSON.stringify(payload));
-		this.onMessage('userinput', 'you', el.value);
+		this.onMessage(this.chan, this.nickname, el.value);
 		el.value = "";
 
 		e.preventDefault();
